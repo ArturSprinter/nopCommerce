@@ -375,6 +375,8 @@ namespace Nop.Web.Framework.UI
                     //output file
                     var outputFileName = GetBundleFileName(partsToBundle.Select(x => debugModel ? x.DebugSrc : x.Src).ToArray());
                     bundle.OutputFileName = _fileProvider.Combine(_webHostEnvironment.WebRootPath, "bundles", outputFileName + ".js");
+                    var minifiedFileName = _fileProvider.Combine(_webHostEnvironment.WebRootPath, "bundles", outputFileName + ".min.js");
+                    
                     //save
                     var configFilePath = _fileProvider.MapPath($"/{outputFileName}.json");
                     bundle.FileName = configFilePath;
@@ -392,11 +394,22 @@ namespace Nop.Web.Framework.UI
                     {
                         lock (_lock)
                         {
+                            //removing previous bundles to make sure we will get fresh ones
+                            _fileProvider.DeleteFile(bundle.OutputFileName);
+                            _fileProvider.DeleteFile(minifiedFileName);
+                            
                             //store json file to see a generated config file (for debugging purposes)
                             //BundleHandler.AddBundle(configFilePath, bundle);
 
                             //process
                             _processor.Process(configFilePath, new List<Bundle> { bundle });
+
+                            if (!_fileProvider.FileExists(minifiedFileName))
+                            {
+                                //Because bunder sometimes do not creates minified versions (even when minification is enabled),
+                                //  we copy full (combined) version of bundle as minified one.
+                                _fileProvider.FileCopy(bundle.OutputFileName, minifiedFileName, false);
+                            }
                         }
 
                         _staticCacheManager.Set(cacheKey, false);
@@ -604,6 +617,8 @@ namespace Nop.Web.Framework.UI
                     //output file
                     var outputFileName = GetBundleFileName(partsToBundle.Select(x => { return debugModel ? x.DebugSrc : x.Src; }).ToArray());
                     bundle.OutputFileName = _fileProvider.Combine(_webHostEnvironment.WebRootPath, "bundles", outputFileName + ".css");
+                    var minifiedFileName = _fileProvider.Combine(_webHostEnvironment.WebRootPath, "bundles", outputFileName + ".min.css");
+                        
                     //save
                     var configFilePath = _fileProvider.MapPath($"/{outputFileName}.json");
                     bundle.FileName = configFilePath;
@@ -621,11 +636,22 @@ namespace Nop.Web.Framework.UI
                     {
                         lock (_lock)
                         {
+                            //removing previous bundles to make sure we will get fresh ones
+                            _fileProvider.DeleteFile(bundle.OutputFileName);
+                            _fileProvider.DeleteFile(minifiedFileName);
+                            
                             //store json file to see a generated config file (for debugging purposes)
                             //BundleHandler.AddBundle(configFilePath, bundle);
 
                             //process
                             _processor.Process(configFilePath, new List<Bundle> { bundle });
+                            
+                            if (!_fileProvider.FileExists(minifiedFileName))
+                            {
+                                //Because bunder sometimes do not creates minified versions (even when minification is enabled),
+                                //  we copy full (combined) version of bundle as minified one.
+                                _fileProvider.FileCopy(bundle.OutputFileName, minifiedFileName, false);
+                            }
                         }
 
                         _staticCacheManager.Set(cacheKey, false);
